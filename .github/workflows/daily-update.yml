@@ -1,11 +1,11 @@
 name: daily-update
 
 # 每天在 GitHub 云端更新站点数据（不依赖任何个人电脑）
-# 流程：本地起数据服务(8701) -> 抓 4 个玩法 -> 写 data/*.json -> 重建尾数指标页 -> 合规收尾 -> 自动提交
+# 流程：预热缓存 -> 起数据服务(8701) -> 抓 4 个玩法 -> 写 data/*.json -> 重建尾数指标页 -> 合规收尾 -> 自动提交
 
 on:
   schedule:
-    # UTC 01:00 = 北京时间 09:00；再加一次 UTC 13:00 = 北京 21:00 兜底
+    # UTC 01:00 = 北京 09:00；UTC 13:00 = 北京 21:00（兜底）
     - cron: '0 1 * * *'
     - cron: '0 13 * * *'
   workflow_dispatch:
@@ -35,23 +35,30 @@ jobs:
         with:
           node-version: '20'
 
+      - name: 用仓库现有数据预热 hen22x5 缓存
+        run: node _build/seed_hen_cache.js "$GITHUB_WORKSPACE"
+
       - name: 启动数据服务（本机 8701）
         run: |
-          set -x
           node _build/ssq_update_server.js > /tmp/srv.log 2>&1 &
           echo "server pid=$!"
+          ok=0
           for i in $(seq 1 40); do
             if curl -sf --max-time 10 "http://127.0.0.1:8701/data?game=ssq&issueCount=3" > /tmp/probe.json; then
               echo "8701 就绪（第 ${i} 次探测）"
+              ok=1
               break
             fi
             sleep 3
           done
-          echo "--- 探测响应 ---"
-          head -c 300 /tmp/probe.json || true
-          echo
+          if [ "$ok" != "1" ]; then
+            echo "8701 未就绪，服务日志："
+            cat /tmp/srv.log || true
+            exit 1
+          fi
+          head -c 200 /tmp/probe.json; echo
           echo "--- 服务日志 ---"
-          tail -20 /tmp/srv.log || true
+          tail -10 /tmp/srv.log || true
 
       - name: 抓数据并重建尾数页
         env:
@@ -59,6 +66,7 @@ jobs:
           LOTTERY_SITE: ${{ github.workspace }}
           LOTTERY_SSQ_ROWS: ${{ github.workspace }}/_build/ssq_rows.json
           LOTTERY_SKIP_HENFULL: '1'
+          LOTTERY_FETCH_TIMEOUT: '240'
         run: |
           python _build/refresh_site.py
 
@@ -69,19 +77,15 @@ jobs:
       - name: 核对产物
         run: |
           echo "--- data 目录 ---"
-          ls -la data/ || true
+          ls -la data/
           echo "--- 最新期号 ---"
           python - <<'PY'
           import json
           for g in ['ssq','qlc','dlt','hen22x5']:
-              try:
-                  d = json.load(open('data/%s.json' % g, encoding='utf-8'))
-                  r = d.get('result', [])
-                  print('  %-8s %5d 期  最新 %s' % (g, len(r), r[-1]['code'] if r else '-'))
-                  assert len(r) > 100, '期数异常'
-              except Exception as e:
-                  print('  %-8s 读取失败: %s' % (g, e))
-                  raise
+              d = json.load(open('data/%s.json' % g, encoding='utf-8'))
+              r = d.get('result', [])
+              print('  %-8s %5d 期  最新 %s' % (g, len(r), r[-1]['code'] if r else '-'))
+              assert len(r) > 100, '期数异常'
           PY
           echo "--- 尾数页 ---"
           ls -la ssq-tail-metric.html

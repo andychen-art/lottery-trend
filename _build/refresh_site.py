@@ -43,7 +43,7 @@ def norm_blue(b):
 
 
 def fetch(game):
-    with urllib.request.urlopen(SERVICE % game, timeout=90) as r:
+    with urllib.request.urlopen(SERVICE % game, timeout=int(os.environ.get("LOTTERY_FETCH_TIMEOUT") or 90)) as r:
         j = json.loads(r.read().decode("utf-8"))
     rows = []
     for d in j.get("result", []):
@@ -94,7 +94,11 @@ def main():
     print("=== 1. 拉取实时数据 ===")
     all_rows = {}
     for g in GAMES:
-        rows = fetch(g)
+        try:
+            rows = fetch(g)
+        except Exception as e:
+            print("  %-8s 拉取失败，保留原有数据: %s" % (g, e))
+            continue
         all_rows[g] = rows
         out = {"state": 0, "result": [{"code": r["code"], "red": ",".join(str(x) for x in r["red"]), "blue": r["blue"]} for r in rows]}
         with open(os.path.join(DATA, g + ".json"), "w", encoding="utf-8") as f:
@@ -104,18 +108,32 @@ def main():
             with open(os.path.join(SITE, "hen22x5_full.json"), "w", encoding="utf-8") as f:
                 json.dump({"rows": [{"issue": r["code"], "red": r["red"]} for r in rows]}, f, ensure_ascii=False)
 
-    # 云端：给尾数页生成器准备 [期号(5位), [红球...], 蓝球] 行数据
+    # 给尾数页生成器准备 [期号(5位), [红球...], 蓝球] 行数据
     rows_path = os.environ.get("LOTTERY_SSQ_ROWS")
     if rows_path:
         ssq_rows = []
-        for r in all_rows.get("ssq", []):
+        src_rows = all_rows.get("ssq")
+        if not src_rows:
+            try:
+                old = json.load(open(os.path.join(DATA, "ssq.json"), encoding="utf-8"))
+                src_rows = []
+                for d in old.get("result", []):
+                    red = d.get("red")
+                    if isinstance(red, str):
+                        red = [int(x) for x in red.replace(" ", "").split(",") if x != ""]
+                    src_rows.append({"code": str(d.get("code")), "red": sorted(red), "blue": norm_blue(d.get("blue"))})
+                print("  ssq 本轮未抓到，回退使用现有 data/ssq.json")
+            except Exception as e:
+                print("  ssq 回退失败: %s" % e)
+                src_rows = []
+        for r in (src_rows or []):
             code = str(r["code"])
             short = code[2:] if len(code) == 7 else code
             ssq_rows.append([int(short) if short.isdigit() else short, r["red"], r["blue"]])
         with open(rows_path, "w", encoding="utf-8") as f:
             json.dump(ssq_rows, f, ensure_ascii=False)
         os.environ["LOTTERY_SSQ_DATA"] = rows_path
-        print("  尾数页输入已生成: %s（%d 期）" % (rows_path, len(ssq_rows)))
+        print("  尾数页输入: %s（%d 期）" % (rows_path, len(ssq_rows)))
 
     print("=== 2. 重新生成线上版尾数页（300期）===")
     tail = os.path.join(SITE, "ssq-tail-metric.html")
