@@ -1,0 +1,8 @@
+# 云端构建脚本的临时产物
+_build/cache/
+_build/ssq_rows.json
+_build/*.log
+
+# 本地产物
+node_modules/
+*.tmp
