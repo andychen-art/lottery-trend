@@ -1,7 +1,7 @@
 name: probe-fetch
 
-# 只做一件事：验证 GitHub 的服务器能不能抓到 500彩票网 的历史数据
-# 不修改任何站点文件，可随时删除
+# 只做一件事：验证 GitHub 的服务器能不能抓到各数据源
+# 不修改任何站点文件
 
 on:
   workflow_dispatch:
@@ -14,60 +14,77 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: 环境与出口 IP
+      - name: 出口 IP 与地区
         run: |
-          echo "=== 运行环境 ==="
-          cat /etc/os-release | head -3
-          python3 --version
-          echo "=== 出口 IP 与地区 ==="
-          curl -s --max-time 20 https://api.ipify.org || echo "(ipify 失败)"
-          echo ""
-          curl -s --max-time 20 https://ipinfo.io/json || echo "(ipinfo 失败)"
-          echo ""
+          curl -s --max-time 20 https://ipinfo.io/json | head -20
 
-      - name: 抓取 500 历史数据页
+      - name: 数据源可达性总测
         run: |
           python3 - <<'PY'
-          import urllib.request, urllib.error, ssl, time, sys
+          import urllib.request, urllib.parse, urllib.error, time, re, sys
 
-          TARGETS = [
-              ("双色球 ssq", "https://datachart.500.com/ssq/history/newinc/history.php?start=25001&end=25100"),
-              ("七乐彩 qlc", "https://datachart.500.com/qlc/history/newinc/history.php?start=25001&end=25100"),
-              ("大乐透 dlt", "https://datachart.500.com/dlt/history/newinc/history.php?start=25001&end=25100"),
-              ("站点首页", "https://datachart.500.com/"),
-          ]
-          HEADERS = {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-              "Referer": "https://datachart.500.com/",
-              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-              "Accept-Language": "zh-CN,zh;q=0.9",
-          }
+          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+          COMMON = {"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "zh-CN,zh;q=0.9"}
 
-          ok = 0
-          for name, url in TARGETS:
+          def do_get(url, referer=None, timeout=45):
+              h = dict(COMMON)
+              if referer: h["Referer"] = referer
+              req = urllib.request.Request(url, headers=h)
               t0 = time.time()
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  return r.status, r.read(), time.time() - t0
+
+          def do_post(url, form, referer=None, timeout=45):
+              h = dict(COMMON)
+              h["Content-Type"] = "application/x-www-form-urlencoded"
+              if referer: h["Referer"] = referer
+              data = urllib.parse.urlencode(form).encode()
+              req = urllib.request.Request(url, data=data, headers=h)
+              t0 = time.time()
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  return r.status, r.read(), time.time() - t0
+
+          results = []
+
+          def report(label, fn):
               try:
-                  req = urllib.request.Request(url, headers=HEADERS)
-                  with urllib.request.urlopen(req, timeout=30) as r:
-                      body = r.read()
-                      code = r.status
-                  dt = time.time() - t0
+                  code, body, dt = fn()
                   text = body.decode("gb18030", errors="replace")
-                  has_rows = text.count("<tr") 
-                  print(f"[OK]   {name:14s} HTTP {code}  {len(body)/1024:8.1f} KB  {dt:5.1f}s  tr标记={has_rows}")
-                  if has_rows:
-                      import re
-                      issues = re.findall(r"\b(20\d{5}|2\d{4})\b", text)[:5]
-                      print(f"       期号样本: {issues}")
-                      ok += 1
+                  interesting = (text.count("<tr") > 0) or ("|" in text) or ("{" in text[:200])
+                  print(f"[OK]   {label:26s} HTTP {code}  {len(body)/1024:8.1f} KB  {dt:5.1f}s  有效标记={interesting}")
+                  print(f"       片段: {text[:150].replace(chr(10),' ')}")
+                  results.append((label, True))
               except urllib.error.HTTPError as e:
-                  print(f"[HTTP] {name:14s} 状态码 {e.code}  {time.time()-t0:5.1f}s")
+                  print(f"[HTTP] {label:26s} 状态码 {e.code}")
+                  results.append((label, False))
               except Exception as e:
-                  print(f"[FAIL] {name:14s} {type(e).__name__}: {e}  {time.time()-t0:5.1f}s")
+                  print(f"[FAIL] {label:26s} {type(e).__name__}: {e}")
+                  results.append((label, False))
+
+          print("=== 1. 500彩票网（双色球/七乐彩）===")
+          report("500 ssq 历史", lambda: do_get("https://datachart.500.com/ssq/history/newinc/history.php?start=25001&end=25100"))
+          report("500 qlc 历史", lambda: do_get("https://datachart.500.com/qlc/history/newinc/history.php?start=25001&end=25100"))
 
           print("")
-          print(f"=== 结论: {ok}/4 个目标抓取成功 ===")
-          if ok == 0:
-              print("GitHub 服务器无法访问 500彩票网 → 云端抓数方案不可行")
-              sys.exit(1)
+          print("=== 2. 乐彩网 17500（大乐透）===")
+          report("17500 dlt_asc.txt", lambda: do_get("https://data.17500.cn/dlt_asc.txt"))
+
+          print("")
+          print("=== 3. 乐彩网 17500（河南22选5）===")
+          report("17500 getlist POST", lambda: do_post("https://www.17500.cn/api/kaijiang/getlist",
+                                                        {"lotid": "hen22x5", "limit": "300", "year": ""},
+                                                        referer="https://www.17500.cn/kj/list-hen22x5.html"))
+          report("17500 winlist POST", lambda: do_post("https://m.17500.cn/api/m/win/list/hen22x5/0", {},
+                                                        referer="https://m.17500.cn/kj-m/list-hen22x5.html"))
+          report("17500 hen22x5 网页", lambda: do_get("https://www.17500.cn/kj/list-hen22x5.html"))
+
+          print("")
+          print("=== 4. 中福彩官网（备用源）===")
+          report("cwl.gov.cn 开奖公告", lambda: do_get("https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=ssq&issueCount=&issueStart=&issueEnd=&dayStart=2025-01-01&dayEnd=2025-12-31&pageNo=1&pageSize=10&week=&systemType=PC"))
+
+          ok = sum(1 for _, v in results if v)
+          print("")
+          print(f"=== 结论: {ok}/{len(results)} 个数据源抓取成功 ===")
+          for label, v in results:
+              print(f"   {'OK ' if v else 'FAIL'}  {label}")
           PY
