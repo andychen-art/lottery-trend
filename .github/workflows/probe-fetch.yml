@@ -1,0 +1,73 @@
+name: probe-fetch
+
+# 只做一件事：验证 GitHub 的服务器能不能抓到 500彩票网 的历史数据
+# 不修改任何站点文件，可随时删除
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/probe-fetch.yml'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 环境与出口 IP
+        run: |
+          echo "=== 运行环境 ==="
+          cat /etc/os-release | head -3
+          python3 --version
+          echo "=== 出口 IP 与地区 ==="
+          curl -s --max-time 20 https://api.ipify.org || echo "(ipify 失败)"
+          echo ""
+          curl -s --max-time 20 https://ipinfo.io/json || echo "(ipinfo 失败)"
+          echo ""
+
+      - name: 抓取 500 历史数据页
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, ssl, time, sys
+
+          TARGETS = [
+              ("双色球 ssq", "https://datachart.500.com/ssq/history/newinc/history.php?start=25001&end=25100"),
+              ("七乐彩 qlc", "https://datachart.500.com/qlc/history/newinc/history.php?start=25001&end=25100"),
+              ("大乐透 dlt", "https://datachart.500.com/dlt/history/newinc/history.php?start=25001&end=25100"),
+              ("站点首页", "https://datachart.500.com/"),
+          ]
+          HEADERS = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+              "Referer": "https://datachart.500.com/",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "zh-CN,zh;q=0.9",
+          }
+
+          ok = 0
+          for name, url in TARGETS:
+              t0 = time.time()
+              try:
+                  req = urllib.request.Request(url, headers=HEADERS)
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      body = r.read()
+                      code = r.status
+                  dt = time.time() - t0
+                  text = body.decode("gb18030", errors="replace")
+                  has_rows = text.count("<tr") 
+                  print(f"[OK]   {name:14s} HTTP {code}  {len(body)/1024:8.1f} KB  {dt:5.1f}s  tr标记={has_rows}")
+                  if has_rows:
+                      import re
+                      issues = re.findall(r"\b(20\d{5}|2\d{4})\b", text)[:5]
+                      print(f"       期号样本: {issues}")
+                      ok += 1
+              except urllib.error.HTTPError as e:
+                  print(f"[HTTP] {name:14s} 状态码 {e.code}  {time.time()-t0:5.1f}s")
+              except Exception as e:
+                  print(f"[FAIL] {name:14s} {type(e).__name__}: {e}  {time.time()-t0:5.1f}s")
+
+          print("")
+          print(f"=== 结论: {ok}/4 个目标抓取成功 ===")
+          if ok == 0:
+              print("GitHub 服务器无法访问 500彩票网 → 云端抓数方案不可行")
+              sys.exit(1)
+          PY
