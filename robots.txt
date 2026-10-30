@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://andychen-art.github.io/lottery-trend/sitemap.xml

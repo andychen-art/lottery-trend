@@ -161,7 +161,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
 }catch(e){}})();</script>
 
 <h1>🎯 七乐彩 · 区间出号与遗漏分布走势图</h1>
-<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
+<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期 + 前1~前10期各区间出号个数 · 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
 
 <div class="bar">
   <span class="lbl">期数:</span>
@@ -198,6 +198,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
   <div class="tabs trend">
     <span class="tab on" data-tz="all" onclick="setTrendTab('all',this)">全部</span>
     <span class="tab" data-tz="zone" onclick="setTrendTab('zone',this)">区间出号</span>
+    <span class="tab" data-tz="prev" onclick="setTrendTab('prev',this)">前1~10期出号</span>
     <span class="tab" data-tz="empty" onclick="setTrendTab('empty',this)">上期空区</span>
     <span class="tab" data-tz="miss" onclick="setTrendTab('miss',this)">遗漏分布</span>
     <span class="tab" data-tz="sum2" onclick="setTrendTab('sum2',this)">两期和</span>
@@ -460,6 +461,7 @@ var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8"
 // 号码 → 区间
 var numZone = {};
 ZONES.forEach(function(z){ z.nums.forEach(function(n){ numZone[n] = z.id; }); });
+var PREV_N = 10;  // 区间走势图：向后回顾前 N 期的出号个数
 
 // 预计算：每期区间个数 + 上期空区出号 + 出号遗漏分布
 var zoneCache = [];  // zoneCache[i] = {z1:个数,...}
@@ -884,6 +886,12 @@ function buildHead(){
   h += '<th class="issue" rowspan="2">期号</th><th class="issue" rowspan="2">开奖号码</th>';
   var sepAll = (trendZone === "all");
   if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="7">区间出号个数</th>';
+  if (trendZone === "all" || trendZone === "prev"){
+    for (var pn = 1; pn <= PREV_N; pn++){
+      var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
+      h += '<th class="zone' + psep + '" colspan="7" title="前' + pn + '期：该期各区间出号个数">前' + pn + '期</th>';
+    }
+  }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
   if (trendZone === "all" || trendZone === "miss") h += '<th class="missh' + (sepAll ? ' sep' : '') + '" colspan="10">出号遗漏分布</th>';
   if (trendZone === "all" || trendZone === "sum2") h += '<th class="sum2' + (sepAll ? ' sep' : '') + '" colspan="8">两期遗漏和</th>';
@@ -919,6 +927,11 @@ function buildHead(){
   h += "</tr><tr>";
   if (trendZone === "all" || trendZone === "zone"){
     ZONES.forEach(function(z, k){ h += '<th class="sub">' + z.name + '</th>'; });
+  }
+  if (trendZone === "all" || trendZone === "prev"){
+    for (var pn2 = 1; pn2 <= PREV_N; pn2++){
+      ZONES.forEach(function(z){ h += '<th class="sub">' + z.name + '</th>'; });
+    }
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="sub">个数</th>';
   if (trendZone === "all" || trendZone === "miss"){
@@ -992,6 +1005,16 @@ function buildRows(start){
         var n = zc[z.id];
         r += '<td class="zc' + (n > 0 ? ' hi' : '') + '">' + n + '</td>';
       });
+    }
+    if (all || trendZone === "prev"){
+      for (var pn3 = 1; pn3 <= PREV_N; pn3++){
+        var pz = (i - pn3 >= 0) ? zoneCache[i - pn3] : null;
+        ZONES.forEach(function(z){
+          if (!pz){ r += '<td class="zc">-</td>'; return; }
+          var pv = pz[z.id];
+          r += '<td class="zc' + (pv > 0 ? ' hi' : '') + '">' + pv + '</td>';
+        });
+      }
     }
     if (all || trendZone === "empty"){
       var ec = emptyCache[i];
