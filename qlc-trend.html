@@ -161,7 +161,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
 }catch(e){}})();</script>
 
 <h1>🎯 七乐彩 · 区间出号与遗漏分布走势图</h1>
-<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期开奖号码 · 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
+<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期出号个数（单数标●）· 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
 
 <div class="bar">
   <span class="lbl">期数:</span>
@@ -198,7 +198,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
   <div class="tabs trend">
     <span class="tab on" data-tz="all" onclick="setTrendTab('all',this)">全部</span>
     <span class="tab" data-tz="zone" onclick="setTrendTab('zone',this)">区间出号</span>
-    <span class="tab" data-tz="prev" onclick="setTrendTab('prev',this)">前1~10期号码</span>
+    <span class="tab" data-tz="prev" onclick="setTrendTab('prev',this)">前1~10期出号</span>
     <span class="tab" data-tz="empty" onclick="setTrendTab('empty',this)">上期空区</span>
     <span class="tab" data-tz="miss" onclick="setTrendTab('miss',this)">遗漏分布</span>
     <span class="tab" data-tz="sum2" onclick="setTrendTab('sum2',this)">两期和</span>
@@ -889,7 +889,8 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "prev"){
     for (var pn = 1; pn <= PREV_N; pn++){
       var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
-      h += '<th class="zone' + psep + '" colspan="1" rowspan="2" title="前第' + pn + '期的开奖号码">前' + pn + '期</th>';
+      h += '<th class="zone' + psep + '" colspan="1" rowspan="2" title="当期开奖号码在前第' + pn + '期中的出号个数">前' + pn + '期</th>';
+      h += '<th class="ljoddh" colspan="1" rowspan="2" title="左边个数是单数则标 ●">单双</th>';
     }
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
@@ -1004,11 +1005,15 @@ function buildRows(start){
     if (all || trendZone === "prev"){
       for (var pn3 = 1; pn3 <= PREV_N; pn3++){
         var pi = i - pn3;
-        if (pi < 0){ r += '<td class="num">-</td>'; continue; }
+        if (pi < 0){
+          r += '<td class="zc">-</td><td class="zc ljodd even"></td>';
+          continue;
+        }
         var pnum = HIST[pi];
-        r += '<td class="num" title="前' + pn3 + '期 ' + pnum.issue + '">'
-          + pnum.red.map(function(x){ return ('0' + x).slice(-2); }).join(' ')
-          + blueHtml(pnum.blue) + '</td>';
+        var hit = d.red.filter(function(x){ return pnum.red.indexOf(x) >= 0; }).length;
+        var hodd = (hit % 2 === 1);
+        r += '<td class="zc' + (hit > 0 ? ' hi' : '') + '" title="当期号码在前' + pn3 + '期（' + pnum.issue + '）中出号 ' + hit + ' 个">' + hit + '</td>';
+        r += '<td class="zc ljodd ' + (hodd ? 'odd' : 'even') + '" title="' + hit + ' 是' + (hodd ? '单数' : '双数') + '">' + (hodd ? '●' : '') + '</td>';
       }
     }
     if (all || trendZone === "empty"){
