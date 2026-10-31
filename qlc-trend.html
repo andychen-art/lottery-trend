@@ -163,7 +163,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
 }catch(e){}})();</script>
 
 <h1>🎯 七乐彩 · 区间出号与遗漏分布走势图</h1>
-<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期出号个数（单数标●；汇总列=整体与前1-3/4-6/7-10期分段的 0-2、1-3 判定）· 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
+<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期出号个数（单数标●）；每段末尾是该段 0-2/1-3 汇总，最后两列是总汇总· 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
 
 <div class="bar">
   <span class="lbl">期数:</span>
@@ -894,13 +894,16 @@ function buildHead(){
       var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
       h += '<th class="zone' + psep + '" colspan="1" rowspan="2" title="当期开奖号码在前第' + pn + '期中的出号个数">前' + pn + '期</th>';
       h += '<th class="ljoddh" colspan="1" rowspan="2" title="左边个数是单数则标 ●">单双</th>';
+      for (var wi = 0; wi < PREV_WINDOWS.length; wi++){
+        var wh = PREV_WINDOWS[wi];
+        if (pn === wh[1]){
+          h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前' + wh[0] + '~前' + wh[1] + '期的出号个数是否全部在 0~2 个之间（是则标 ✓）">' + wh[0] + '-' + wh[1] + '期0-2</th>';
+          h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前' + wh[0] + '~前' + wh[1] + '期的出号个数是否全部在 1~3 个之间（是则标 ✓）">' + wh[0] + '-' + wh[1] + '期1-3</th>';
+        }
+      }
     }
-    h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前1~前10期的出号个数是否全部在 0~2 个之间（是则标 ✓）">0-2汇总</th>';
-    h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前1~前10期的出号个数是否全部在 1~3 个之间（是则标 ✓）">1-3汇总</th>';
-    PREV_WINDOWS.forEach(function(w){
-      h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前' + w[0] + '~前' + w[1] + '期的出号个数是否全部在 0~2 个之间（是则标 ✓）">' + w[0] + '-' + w[1] + '期0-2</th>';
-      h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前' + w[0] + '~前' + w[1] + '期的出号个数是否全部在 1~3 个之间（是则标 ✓）">' + w[0] + '-' + w[1] + '期1-3</th>';
-    });
+    h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前1~前10期总体：出号个数是否全部在 0~2 个之间（是则标 ✓）">总0-2</th>';
+    h += '<th class="zone sep-blue" colspan="1" rowspan="2" title="前1~前10期总体：出号个数是否全部在 1~3 个之间（是则标 ✓）">总1-3</th>';
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
   if (trendZone === "all" || trendZone === "miss") h += '<th class="missh' + (sepAll ? ' sep' : '') + '" colspan="10">出号遗漏分布</th>';
@@ -1018,34 +1021,34 @@ function buildRows(start){
         if (pi < 0){
           prevHits.push(null);
           r += '<td class="zc">-</td><td class="zc ljodd even"></td>';
-          continue;
+        } else {
+          var pnum = HIST[pi];
+          var hit = d.red.filter(function(x){ return pnum.red.indexOf(x) >= 0; }).length;
+          var hodd = (hit % 2 === 1);
+          prevHits.push(hit);
+          r += '<td class="zc' + (hit > 0 ? ' hi' : '') + '" title="当期号码在前' + pn3 + '期（' + pnum.issue + '）中出号 ' + hit + ' 个">' + hit + '</td>';
+          r += '<td class="zc ljodd ' + (hodd ? 'odd' : 'even') + '" title="' + hit + ' 是' + (hodd ? '单数' : '双数') + '">' + (hodd ? '●' : '') + '</td>';
         }
-        var pnum = HIST[pi];
-        var hit = d.red.filter(function(x){ return pnum.red.indexOf(x) >= 0; }).length;
-        var hodd = (hit % 2 === 1);
-        prevHits.push(hit);
-        r += '<td class="zc' + (hit > 0 ? ' hi' : '') + '" title="当期号码在前' + pn3 + '期（' + pnum.issue + '）中出号 ' + hit + ' 个">' + hit + '</td>';
-        r += '<td class="zc ljodd ' + (hodd ? 'odd' : 'even') + '" title="' + hit + ' 是' + (hodd ? '单数' : '双数') + '">' + (hodd ? '●' : '') + '</td>';
+        // 段末：输出该段的 0-2 / 1-3 汇总
+        for (var wi2 = 0; wi2 < PREV_WINDOWS.length; wi2++){
+          var w2 = PREV_WINDOWS[wi2];
+          if (pn3 === w2[1]){
+            var seg = prevHits.slice(w2[0] - 1, w2[1]).filter(function(v){ return v !== null; });
+            var g02 = seg.length > 0 && seg.every(function(v){ return v >= 0 && v <= 2; });
+            var g13 = seg.length > 0 && seg.every(function(v){ return v >= 1 && v <= 3; });
+            var segTip = '前' + w2[0] + '~前' + w2[1] + '期出号个数：' + seg.join('/');
+            r += '<td class="zc' + (g02 ? ' p02on' : '') + '" title="' + segTip + (g02 ? '（全部在 0~2 ✓）' : '（有超过 2 的期）') + '">' + (g02 ? '✓' : '') + '</td>';
+            r += '<td class="zc' + (g13 ? ' p13on' : '') + '" title="' + segTip + (g13 ? '（全部在 1~3 ✓）' : '（有不在 1~3 的期）') + '">' + (g13 ? '✓' : '') + '</td>';
+          }
+        }
       }
-      // 汇总：所有可用的前N期出号个数是否全部在 0~2 之间
+      // 总体汇总（放在最后）
       var avail = prevHits.filter(function(v){ return v !== null; });
       var all02 = avail.length > 0 && avail.every(function(v){ return v >= 0 && v <= 2; });
-      var baseTip = '前' + avail.length + '期出号个数：' + avail.join('/');
-      var sumTip = baseTip + (all02 ? '（全部在 0~2 之间 ✓）' : '（有超过 2 个的期）');
-      r += '<td class="zc' + (all02 ? ' p02on' : '') + '" title="' + sumTip + '">' + (all02 ? '✓' : '') + '</td>';
-      // 第二个汇总：所有可用前N期出号个数是否全部落在 1~3 之间
       var all13 = avail.length > 0 && avail.every(function(v){ return v >= 1 && v <= 3; });
-      var sumTip13 = baseTip + (all13 ? '（全部在 1~3 之间 ✓）' : '（有不在 1~3 的期）');
-      r += '<td class="zc' + (all13 ? ' p13on' : '') + '" title="' + sumTip13 + '">' + (all13 ? '✓' : '') + '</td>';
-      // 分段汇总：前1-3期 / 前4-6期 / 前7-10期，各判 0-2 与 1-3
-      PREV_WINDOWS.forEach(function(w){
-        var seg = prevHits.slice(w[0] - 1, w[1]).filter(function(v){ return v !== null; });
-        var g02 = seg.length > 0 && seg.every(function(v){ return v >= 0 && v <= 2; });
-        var g13 = seg.length > 0 && seg.every(function(v){ return v >= 1 && v <= 3; });
-        var segTip = '前' + w[0] + '~前' + w[1] + '期出号个数：' + seg.join('/');
-        r += '<td class="zc' + (g02 ? ' p02on' : '') + '" title="' + segTip + (g02 ? '（全部在 0~2 ✓）' : '（有超过 2 的期）') + '">' + (g02 ? '✓' : '') + '</td>';
-        r += '<td class="zc' + (g13 ? ' p13on' : '') + '" title="' + segTip + (g13 ? '（全部在 1~3 ✓）' : '（有不在 1~3 的期）') + '">' + (g13 ? '✓' : '') + '</td>';
-      });
+      var baseTip = '前' + avail.length + '期出号个数：' + avail.join('/');
+      r += '<td class="zc' + (all02 ? ' p02on' : '') + '" title="' + baseTip + (all02 ? '（全部在 0~2 ✓）' : '（有超过 2 的期）') + '">' + (all02 ? '✓' : '') + '</td>';
+      r += '<td class="zc' + (all13 ? ' p13on' : '') + '" title="' + baseTip + (all13 ? '（全部在 1~3 ✓）' : '（有不在 1~3 的期）') + '">' + (all13 ? '✓' : '') + '</td>';
     }
     if (all || trendZone === "empty"){
       var ec = emptyCache[i];
