@@ -577,6 +577,8 @@ var lastSeen = {};
 var LJ_MAXG = 17;                   // 01~22 选5，相邻间距（空号数）最大可能值
 var LJ_MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8","9+"];
 var LJ_PAIRS = [];
+// 邻号间距组合：与尾数组合同样的 20 组（两值/三值交替、0~9 环绕）
+var LJ_COMBOS = [[0,1],[0,1,2],[1,2],[1,2,3],[2,3],[2,3,4],[3,4],[3,4,5],[4,5],[4,5,6],[5,6],[5,6,7],[6,7],[6,7,8],[7,8],[7,8,9],[8,9],[8,9,0],[9,0],[9,0,1]];
 for (var ljPA = 0; ljPA <= 5; ljPA++) for (var ljPB = ljPA + 1; ljPB <= 5; ljPB++) LJ_PAIRS.push([ljPA, ljPB]);
 var ljGap = [], ljMiss = [], ljLast = [];
 
@@ -2934,6 +2936,7 @@ function ljRenderTrend(){
   for (var v = 0; v <= LJ_MAXG; v++) h += '<th class="ljh" title="间距数字 ' + v + '">' + v + '</th>';
   LJ_MISS_NAMES.forEach(function(m){ h += '<th class="missh" title="' + m + '">' + m + '</th>'; });
   LJ_PAIRS.forEach(function(p){ var lb = LJ_MISS_NAMES[p[0]] + "+" + LJ_MISS_NAMES[p[1]]; h += '<th class="ljpairh" title="' + lb + ' 之和">' + lb + '</th>'; });
+  LJ_COMBOS.forEach(function(c){ h += '<th class="ljpairh" title="间距为 ' + c.join('、') + ' 的个数">距' + c.join('-') + '</th><th class="ljoddh" title="左边个数是单数则标 ●">单双</th>'; });
   h += '</tr></thead><tbody>';
   for (var i = start; i < HIST.length; i++){
     var cnt = [];
@@ -2951,6 +2954,7 @@ function ljRenderTrend(){
     }
     ljMiss[i].forEach(function(c2){ h += '<td class="zc' + (c2 > 0 ? ' hi' : '') + '">' + c2 + '</td>'; });
     LJ_PAIRS.forEach(function(p){ var ps = ljMiss[i][p[0]] + ljMiss[i][p[1]]; h += '<td class="zc' + (ps > 0 ? ' hi' : '') + '" title="' + LJ_MISS_NAMES[p[0]] + '+' + LJ_MISS_NAMES[p[1]] + '=' + ps + '">' + ps + '</td>'; });
+    LJ_COMBOS.forEach(function(c){ var __cs = 0; ljGap[i].forEach(function(g){ if (c.indexOf(g) !== -1) __cs++; }); var __od = (__cs % 2 === 1); h += '<td class="zc' + (__cs > 0 ? ' hi' : '') + '" title="间距 ' + c.join('、') + ' 共 ' + __cs + ' 个">' + __cs + '</td>'; h += '<td class="zc ljodd ' + (__od ? 'odd' : 'even') + '" title="' + __cs + ' 是' + (__od ? '单数' : '双数') + '">' + (__od ? '●' : '') + '</td>'; });
     h += '</tr>';
   }
   h += '</tbody>';

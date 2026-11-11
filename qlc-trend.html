@@ -509,6 +509,8 @@ var LJ_MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","�
 // 「遗漏和」统计组合：0=重号, 1=1期号, 2=2期号, 3=3期号, 4=4期号（对应遗漏分布里的 重0/漏1/漏2/漏3/漏4）
 var LJ_SUMS = [[0,1], [0,1,2], [1,2], [1,2,3], [2,3], [2,3,4]];
 var LJ_SUM_LABELS = ["重号+1期号", "重号+1期号+2期号", "1期号+2期号", "1期号+2期号+3期号", "2期号+3期号", "2期号+3期号+4期号"];
+// 邻号间距组合：与尾数组合同样的 20 组（两值/三值交替、0~9 环绕）
+var LJ_COMBOS = [[0,1],[0,1,2],[1,2],[1,2,3],[2,3],[2,3,4],[3,4],[3,4,5],[4,5],[4,5,6],[5,6],[5,6,7],[6,7],[6,7,8],[7,8],[7,8,9],[8,9],[8,9,0],[9,0],[9,0,1]];
 var ljGap = [], ljMiss = [], ljLast = [];
 
 // ===== 🧱 数据集 / 缓存框架 =====
@@ -2724,6 +2726,7 @@ function ljRenderTrend(){
     h += '<th class="ljpairh" title="' + LJ_SUM_LABELS[si] + ' 之和">' + LJ_SUM_LABELS[si] + '</th>';
     h += '<th class="ljoddh" title="左边一列（' + LJ_SUM_LABELS[si] + '）的和是单数还是双数">单双</th>';
   });
+  LJ_COMBOS.forEach(function(c){ h += '<th class="ljpairh" title="间距为 ' + c.join('、') + ' 的个数">距' + c.join('-') + '</th><th class="ljoddh" title="左边个数是单数则标 ●">单双</th>'; });
   h += '</tr></thead><tbody>';
   for (var i = start; i < HIST.length; i++){
     var cnt = [];
@@ -2747,6 +2750,7 @@ function ljRenderTrend(){
       h += '<td class="zc' + (ps > 0 ? ' hi' : '') + '" title="' + LJ_SUM_LABELS[si] + ' = ' + ps + '">' + ps + '</td>';
       h += '<td class="zc ljodd ' + (odd ? 'odd' : 'even') + '" title="' + ps + ' 是' + (odd ? '单数' : '双数') + '">' + (odd ? '单' : '双') + '</td>';
     });
+    LJ_COMBOS.forEach(function(c){ var __cs = 0; ljGap[i].forEach(function(g){ if (c.indexOf(g) !== -1) __cs++; }); var __od = (__cs % 2 === 1); h += '<td class="zc' + (__cs > 0 ? ' hi' : '') + '" title="间距 ' + c.join('、') + ' 共 ' + __cs + ' 个">' + __cs + '</td>'; h += '<td class="zc ljodd ' + (__od ? 'odd' : 'even') + '" title="' + __cs + ' 是' + (__od ? '单数' : '双数') + '">' + (__od ? '●' : '') + '</td>'; });
     h += '</tr>';
   }
   h += '</tbody>';
