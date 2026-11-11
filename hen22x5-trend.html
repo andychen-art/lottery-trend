@@ -555,6 +555,9 @@ var tailCounts = []; // 每期尾数0-9出现次数
 var tailMarkArr = [];// 每期标色尾数 {t:'red'|'blue'}
 var tailDistArr = [];// 每期尾数遗漏分布 [重号,1期..8期,9+]
 var TAIL_MISS_NAMES = ['重号','1期','2期','3期','4期','5期','6期','7期','8期','9+'];
+// 尾数组合出号个数：两尾/三尾交替、按 0~9 顺序环绕
+var TAIL_COMBOS = [[0,1],[0,1,2],[1,2],[1,2,3],[2,3],[2,3,4],[3,4],[3,4,5],[4,5],[4,5,6],[5,6],[5,6,7],[6,7],[6,7,8],[7,8],[7,8,9],[8,9],[8,9,0],[9,0],[9,0,1]];
+function tailComboLabel(c){ return '尾' + c.join('-'); }
 var MODS = [3, 4, 5, 6, 7, 8, 9, 11];  // 余数统计除数
 var MODS_POS = [3, 5, 7, 9, 11];       // 定位余数除数
 var modCache = [];  // modCache[i] = {3:[余0,余1,余2], 4:[...], ...}
@@ -994,6 +997,7 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "tail") h += '<th class="tailh' + (sepAll ? ' sep' : '') + '" colspan="10">尾数分布</th>';
   if (trendZone === "all" || trendZone === "tail") h += '<th class="tailh' + (sepAll ? ' sep' : '') + '" colspan="10">尾数遗漏</th>';
   if (trendZone === "all" || trendZone === "tail") h += '<th class="tailh' + (sepAll ? ' sep' : '') + '" colspan="2">尾数和</th>';
+  if (trendZone === "all" || trendZone === "tail") h += '<th class="tailh' + (sepAll ? ' sep' : '') + '" colspan="' + (TAIL_COMBOS.length * 2) + '">尾数组合出号个数</th>';
   if (trendZone === "all" || trendZone === "mod"){
     MODS.forEach(function(m, mi){
       var sepCls = (sepAll ? (mi === 0 ? ' sep' : ' sep-blue') : (mi === 0 ? '' : ' sep-blue'));
@@ -1041,6 +1045,7 @@ function buildHead(){
     for (var t = 0; t <= 9; t++) h += '<th class="sub">' + t + '</th>';
     TAIL_MISS_NAMES.forEach(function(mn){ h += '<th class="sub">' + mn + '</th>'; });
     h += '<th class="sub">漏0-1</th><th class="sub">漏0-2</th>';
+    if (trendZone === "all" || trendZone === "tail") TAIL_COMBOS.forEach(function(c){ h += '<th class="sub" title="尾数 ' + c.join('、') + ' 的出号个数">' + tailComboLabel(c) + '</th><th class="ljoddh" title="左边个数是单数则标 ●">单双</th>'; });
   }
   if (trendZone === "all" || trendZone === "mod"){
     MODS.forEach(function(m){
@@ -1191,6 +1196,7 @@ if (trendZone === "all" || trendZone === "tail"){
       var s02 = tdist[0] + tdist[1] + tdist[2];
       r += '<td class="zc' + (s01 > 0 ? ' hi' : '') + '" title="漏0+漏1=' + s01 + '">' + s01 + '</td>';
       r += '<td class="zc' + (s02 > 0 ? ' hi' : '') + '" title="漏0+漏1+漏2=' + s02 + '">' + s02 + '</td>';
+      if (all || trendZone === "tail") TAIL_COMBOS.forEach(function(c){ var __cs = 0; for (var __i = 0; __i < c.length; __i++) __cs += ((tc && tc[c[__i]]) || 0); var __od = (__cs % 2 === 1); r += '<td class="zc' + (__cs > 0 ? ' hi' : '') + '" title="尾数 ' + c.join('、') + ' 出号 ' + __cs + ' 个">' + __cs + '</td>'; r += '<td class="zc ljodd ' + (__od ? 'odd' : 'even') + '" title="' + __cs + ' 是' + (__od ? '单数' : '双数') + '">' + (__od ? '●' : '') + '</td>'; });
   }
     if (all || trendZone === "mod"){
       var mc = modCache[i];
