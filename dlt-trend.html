@@ -875,7 +875,7 @@ function buildHead(){
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
   if (trendZone === "all" || trendZone === "miss") h += '<th class="missh' + (sepAll ? ' sep' : '') + '" colspan="10">出号遗漏分布</th>';
-  if (trendZone === "all" || trendZone === "miss") h += '<th class="missh sep-blue" colspan="3" title="按遗漏分布统计的重复个数">重复个数</th>';
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="missh sep-blue" colspan="6" title="按遗漏分布统计的重复与回补个数">重复 / 回补个数</th>';
   if (trendZone === "all" || trendZone === "sum2") h += '<th class="sum2' + (sepAll ? ' sep' : '') + '" colspan="8">两期遗漏和</th>';
   if (trendZone === "all" || trendZone === "sum3") h += '<th class="sum3' + (sepAll ? ' sep' : '') + '" colspan="7">三期遗漏和</th>';
   if (trendZone === "all" || trendZone === "cum") h += '<th class="cum' + (sepAll ? ' sep' : '') + '" colspan="3">累计遗漏和</th>';
@@ -916,7 +916,7 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "miss"){
     MISS_NAMES.forEach(function(m){ h += '<th class="sub">' + m + '</th>'; });
   }
-  if (trendZone === "all" || trendZone === "miss") h += '<th class="sub" title="本期开出号码中遗漏≤2的个数（漏0~漏2）">3期内重复</th><th class="sub" title="本期开出号码中遗漏≤4的个数（漏0~漏4）">5期内重复</th><th class="sub" title="本期开出号码中遗漏≤7的个数（漏0~漏7）">8期内重复</th>';
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="sub" title="本期开出号码中遗漏≤2的个数（漏0~漏2）">3期内重复</th><th class="sub" title="本期开出号码中遗漏≤4的个数（漏0~漏4）">5期内重复</th><th class="sub" title="本期开出号码中遗漏≤7的个数（漏0~漏7）">8期内重复</th><th class="sub" title="本期号码中，遗漏≤2 且上一期该遗漏列为空的个数">3期内回补</th><th class="sub" title="本期号码中，遗漏≤4 且上一期该遗漏列为空的个数">5期内回补</th><th class="sub" title="本期号码中，遗漏≤7 且上一期该遗漏列为空的个数">8期内回补</th>';
   if (trendZone === "all" || trendZone === "sum2"){
     for (var k2 = 0; k2 < 8; k2++) h += '<th class="sub">漏' + k2 + '-' + (k2 + 1) + '</th>';
   }
@@ -1065,6 +1065,28 @@ function buildRows(start){
           r += '<td class="zc' + (__hb3 > 0 ? ' hi' : '') + '" title="漏0~漏2 的个数">' + __hb3 + '</td>';
           r += '<td class="zc' + (__hb4 > 0 ? ' hi' : '') + '" title="漏0~漏4 的个数">' + __hb4 + '</td>';
           r += '<td class="zc' + (__hb8 > 0 ? ' hi' : '') + '" title="漏0~漏7 的个数">' + __hb8 + '</td>';
+          // 回补 = 本期号码中，遗漏值 v ≤ N-1 且「上一期遗漏分布」中 v 列为空的个数
+          var __hb3b = 0, __hb5b = 0, __hb8b = 0;
+          var __pm = (i > 0) ? missCache[i - 1] : null;
+          if (__pm){
+            d.red.forEach(function(__hn){
+              var __hv = null;
+              for (var __hk = 1; __hk <= 9; __hk++){
+                var __hx = i - __hk;
+                if (__hx < 0) break;
+                if (HIST[__hx].red.indexOf(__hn) !== -1){ __hv = __hk - 1; break; }
+              }
+              if (__hv === null) __hv = 9;
+              if (__pm[__hv] === 0){
+                if (__hv <= 2) __hb3b++;
+                if (__hv <= 4) __hb5b++;
+                if (__hv <= 7) __hb8b++;
+              }
+            });
+          }
+          r += '<td class="zc' + (__hb3b > 0 ? ' hi' : '') + '" title="3期内回补 = ' + __hb3b + '">' + __hb3b + '</td>';
+          r += '<td class="zc' + (__hb5b > 0 ? ' hi' : '') + '" title="5期内回补 = ' + __hb5b + '">' + __hb5b + '</td>';
+          r += '<td class="zc' + (__hb8b > 0 ? ' hi' : '') + '" title="8期内回补 = ' + __hb8b + '">' + __hb8b + '</td>';
         }
     if (all || trendZone === "sum2"){
       for (var s2 = 0; s2 < 8; s2++){
