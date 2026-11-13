@@ -1058,16 +1058,8 @@ function buildRows(start){
       });
     }
         if (all || trendZone === "miss"){
-          var __hb = missCache[i];
-          var __hb3 = __hb[0] + __hb[1] + __hb[2];
-          var __hb4 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4];
-          var __hb8 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4] + __hb[5] + __hb[6] + __hb[7];
-          r += '<td class="zc' + (__hb3 > 0 ? ' hi' : '') + '" title="漏0~漏2 的个数">' + __hb3 + '</td>';
-          r += '<td class="zc' + (__hb4 > 0 ? ' hi' : '') + '" title="漏0~漏4 的个数">' + __hb4 + '</td>';
-          r += '<td class="zc' + (__hb8 > 0 ? ' hi' : '') + '" title="漏0~漏7 的个数">' + __hb8 + '</td>';
-          // 回补 = 本期号码中，遗漏值 v ≤ N-1 且「上一期遗漏分布」中 v 列为空的个数
-          var __hb3b = 0, __hb5b = 0, __hb8b = 0;
           var __pm = (i > 0) ? missCache[i - 1] : null;
+          var __rp3 = 0, __rp5 = 0, __rp8 = 0, __hb3b = 0, __hb5b = 0, __hb8b = 0;
           if (__pm){
             d.red.forEach(function(__hn){
               var __hv = null;
@@ -1077,13 +1069,21 @@ function buildRows(start){
                 if (HIST[__hx].red.indexOf(__hn) !== -1){ __hv = __hk - 1; break; }
               }
               if (__hv === null) __hv = 9;
-              if (__pm[__hv] === 0){
+              // 上一期该遗漏列有号 → 重复；为空 → 回补
+              if (__pm[__hv] > 0){
+                if (__hv <= 2) __rp3++;
+                if (__hv <= 4) __rp5++;
+                if (__hv <= 7) __rp8++;
+              } else {
                 if (__hv <= 2) __hb3b++;
                 if (__hv <= 4) __hb5b++;
                 if (__hv <= 7) __hb8b++;
               }
             });
           }
+          r += '<td class="zc' + (__rp3 > 0 ? ' hi' : '') + '" title="3期内重复 = ' + __rp3 + '">' + __rp3 + '</td>';
+          r += '<td class="zc' + (__rp5 > 0 ? ' hi' : '') + '" title="5期内重复 = ' + __rp5 + '">' + __rp5 + '</td>';
+          r += '<td class="zc' + (__rp8 > 0 ? ' hi' : '') + '" title="8期内重复 = ' + __rp8 + '">' + __rp8 + '</td>';
           r += '<td class="zc' + (__hb3b > 0 ? ' hi' : '') + '" title="3期内回补 = ' + __hb3b + '">' + __hb3b + '</td>';
           r += '<td class="zc' + (__hb5b > 0 ? ' hi' : '') + '" title="5期内回补 = ' + __hb5b + '">' + __hb5b + '</td>';
           r += '<td class="zc' + (__hb8b > 0 ? ' hi' : '') + '" title="8期内回补 = ' + __hb8b + '">' + __hb8b + '</td>';
