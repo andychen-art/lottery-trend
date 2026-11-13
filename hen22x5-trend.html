@@ -540,7 +540,7 @@ var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8"
 var numZone = {};
 ZONES.forEach(function(z){ z.nums.forEach(function(n){ numZone[n] = z.id; }); });
 // 回补 / 重复统计用的列名（顺序与表头一致）
-var HB_NAMES = ["尾12589", "区间回补", "3期回补", "4期回补", "7期回补", "3期内重复", "5期内重复", "8期内重复"];
+var HB_NAMES = ["尾12589", "区间回补", "3期回补", "4期回补", "8期回补", "3期内重复", "5期内重复", "8期内重复"];
 var HB_TAILS = [1, 2, 5, 8, 9];
 var PREV_N = 10;  // 前 N 期出号个数统计（前1期 ~ 前10期）
 var PREV_WINDOWS = [[1, 3], [4, 6], [7, 10]];  // 分段汇总的期数区间（含首含尾）
@@ -1090,6 +1090,9 @@ function blueHtml(b){
 function buildRows(start){
   var r = "<tbody>";
   var all = (trendZone === "all");
+  // 回补统计用：进入循环前先把 start 之前的历史号位恢复出来
+  var __lastPos = {};
+  for (var __pi = 0; __pi < start; __pi++){ HIST[__pi].red.forEach(function(__n3){ __lastPos[__n3] = __pi; }); }
   for (var i = start; i < HIST.length; i++){
     var d = HIST[i];
     var bg = ((i - start) % 2) ? ' class="bg2"' : '';
@@ -1113,17 +1116,26 @@ function buildRows(start){
       r += '<td class="zc' + (__back > 0 ? ' hi' : '') + '" title="上期空区中出号 ' + __back + ' 个">' + __back + '</td>';
       // 以下按「遗漏分布」统计：md[0]=重0(漏0) md[1]=漏1 … md[8]=漏8 md[9]=9+
       var __md = missCache[i];
-      // 回补 = 本期开出的号码中，前 N 期内一次都没出现过的个数（遗漏值 ≥ N）
-      var __b3 = __md[3] + __md[4] + __md[5] + __md[6] + __md[7] + __md[8] + __md[9];
-      var __b4 = __md[4] + __md[5] + __md[6] + __md[7] + __md[8] + __md[9];
-      var __b7 = __md[7] + __md[8] + __md[9];
+      // 回补 = 本期未开出的号码中，遗漏值 < N 的个数（N = 3 / 4 / 8）
+      var __poolMax = ZONES[ZONES.length - 1].nums[ZONES[ZONES.length - 1].nums.length - 1];
+      var __b3 = 0, __b4 = 0, __b8 = 0;
+      for (var __nn = 1; __nn <= __poolMax; __nn++){
+        if (d.red.indexOf(__nn) !== -1) continue;
+        var __pp = __lastPos[__nn];
+        if (__pp === undefined) continue;
+        var __mm = i - __pp - 1;
+        if (__mm < 3) __b3++;
+        if (__mm < 4) __b4++;
+        if (__mm < 8) __b8++;
+      }
+      d.red.forEach(function(__n2){ __lastPos[__n2] = i; });
       var __r3 = __md[0] + __md[1] + __md[2];
       var __r5 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4];
       var __r8 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4] + __md[5] + __md[6] + __md[7];
       var __cells = [
-        [__b3, "前 3 期内一次都没出现（遗漏≥3）的本期号码个数"],
-        [__b4, "前 4 期内一次都没出现（遗漏≥4）的本期号码个数"],
-        [__b7, "前 7 期内一次都没出现（遗漏≥7）的本期号码个数"],
+        [__b3, "本期未开出的号码中，遗漏 < 3 的个数"],
+        [__b4, "本期未开出的号码中，遗漏 < 4 的个数"],
+        [__b8, "本期未开出的号码中，遗漏 < 8 的个数"],
         [__r3, "3 期内重复：遗漏 0~2 期（最近 3 期内出现过）的号码个数"],
         [__r5, "5 期内重复：遗漏 0~4 期"],
         [__r8, "8 期内重复：遗漏 0~7 期"]
