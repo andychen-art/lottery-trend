@@ -519,6 +519,9 @@ var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8"
 // 号码 → 区间
 var numZone = {};
 ZONES.forEach(function(z){ z.nums.forEach(function(n){ numZone[n] = z.id; }); });
+// 回补 / 重复统计用的列名（顺序与表头一致）
+var HB_NAMES = ["尾12589", "区间回补", "3期内回补", "5期内回补", "8期外下号", "3期内重复", "5期内重复", "8期内重复"];
+var HB_TAILS = [1, 2, 5, 8, 9];
 var PREV_N = 10;  // 前 N 期出号个数统计（前1期 ~ 前10期）
 var PREV_WINDOWS = [[1, 3], [4, 6], [7, 10]];  // 分段汇总的期数区间（含首含尾）
 var PREV_RANGES = [[0, 1], [0, 2], [1, 2], [1, 3]];  // 汇总判定范围（含首含尾）
@@ -961,6 +964,7 @@ function buildHead(){
   h += '<th class="issue" rowspan="2">期号</th><th class="issue" rowspan="2">开奖号码</th>';
   var sepAll = (trendZone === "all");
   if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="7">区间出号个数</th>';
+  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="8" title="区间回补与区间重复统计">回补 / 重复统计</th>';
   if (trendZone === "all" || trendZone === "prev"){
     for (var pn = 1; pn <= PREV_N; pn++){
       var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
@@ -1018,6 +1022,7 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "zone"){
     ZONES.forEach(function(z, k){ h += '<th class="sub">' + z.name + '</th>'; });
   }
+  if (trendZone === "all" || trendZone === "zone") HB_NAMES.forEach(function(nm){ h += '<th class="sub" title="' + nm + '">' + nm + '</th>'; });
   if (trendZone === "all" || trendZone === "empty") h += '<th class="sub">个数</th>';
   if (trendZone === "all" || trendZone === "miss"){
     MISS_NAMES.forEach(function(m){ h += '<th class="sub">' + m + '</th>'; });
@@ -1095,6 +1100,46 @@ function buildRows(start){
       ZONES.forEach(function(z){
         var n = zc[z.id];
         r += '<td class="zc' + (n > 0 ? ' hi' : '') + '">' + n + '</td>';
+      });
+    }
+    if (all || trendZone === "zone"){
+      // 尾数 1 2 5 8 9 出号个数
+      var __t12589 = d.red.filter(function(x){ return HB_TAILS.indexOf(x % 10) !== -1; }).length;
+      r += '<td class="zc' + (__t12589 > 0 ? ' hi' : '') + '" title="尾数 1/2/5/8/9 出号 ' + __t12589 + ' 个">' + __t12589 + '</td>';
+      // 区间回补 / 重复
+      var __zb = function(zid, k){ return (i - k >= 0) ? zoneCache[i - k][zid] : null; };
+      var __back = 0, __back3 = 0, __back5 = 0, __back8 = 0, __rep3 = 0, __rep5 = 0, __rep8 = 0;
+      var __ok3 = (i - 3 >= 0), __ok5 = (i - 5 >= 0), __ok8 = (i - 8 >= 0), __ok1 = (i - 1 >= 0);
+      ZONES.forEach(function(z){
+        var zid = z.id, cur = zc[zid];
+        var e1 = true, e3 = true, e5 = true, e8 = true;
+        var h3 = true, h5 = true, h8 = true;
+        for (var k = 1; k <= 8; k++){
+          var v = __zb(zid, k);
+          if (v === null) { if (k <= 3) { e3 = false; h3 = false; } if (k <= 5) { e5 = false; h5 = false; } e8 = false; h8 = false; continue; }
+          if (k === 1){ if (v !== 0) e1 = false; }
+          if (v !== 0){ e3 = false; e5 = false; e8 = false; } else { h3 = false; h5 = false; h8 = false; }
+        }
+        if (e1 && cur > 0) __back += cur;
+        if (e3 && __ok3) __back3 += cur;
+        if (e5 && __ok5) __back5 += cur;
+        if (e8 && __ok8) __back8 += cur;
+        if (h3 && __ok3) __rep3 += cur;
+        if (h5 && __ok5) __rep5 += cur;
+        if (h8 && __ok8) __rep8 += cur;
+      });
+      var __cells = [
+        [__back, __ok1, "上期空区中出号个数"],
+        [__back3, __ok3, "前 3 期都没出号的区间，本期出号个数"],
+        [__back5, __ok5, "前 5 期都没出号的区间，本期出号个数"],
+        [__back8, __ok8, "连续 8 期及以上没出号的区间（含第 8 期），本期出号个数"],
+        [__rep3, __ok3, "前 3 期都出过号的区间，本期出号个数"],
+        [__rep5, __ok5, "前 5 期都出过号的区间，本期出号个数"],
+        [__rep8, __ok8, "前 8 期都出过号的区间，本期出号个数"]
+      ];
+      __cells.forEach(function(it){
+        var v = it[0], ok = it[1], tip = it[2];
+        r += ok ? ('<td class="zc' + (v > 0 ? ' hi' : '') + '" title="' + tip + ' = ' + v + '">' + v + '</td>') : '<td class="zc" title="历史期数不足">-</td>';
       });
     }
     if (all || trendZone === "prev"){
