@@ -520,7 +520,7 @@ var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8"
 var numZone = {};
 ZONES.forEach(function(z){ z.nums.forEach(function(n){ numZone[n] = z.id; }); });
 // 回补 / 重复统计用的列名（顺序与表头一致）
-var HB_NAMES = ["尾12589", "区间回补", "3期回补", "4期回补", "8期回补", "3期内重复", "5期内重复", "8期内重复"];
+var HB_NAMES = ["尾12589", "区间回补", "3期回补", "4期回补", "8期回补"];
 var HB_TAILS = [1, 2, 5, 8, 9];
 var PREV_N = 10;  // 前 N 期出号个数统计（前1期 ~ 前10期）
 var PREV_WINDOWS = [[1, 3], [4, 6], [7, 10]];  // 分段汇总的期数区间（含首含尾）
@@ -964,7 +964,7 @@ function buildHead(){
   h += '<th class="issue" rowspan="2">期号</th><th class="issue" rowspan="2">开奖号码</th>';
   var sepAll = (trendZone === "all");
   if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="7">区间出号个数</th>';
-  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="8" title="区间回补与区间重复统计">回补 / 重复统计</th>';
+  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="5" title="区间回补与遗漏回补统计">回补统计</th>';
   if (trendZone === "all" || trendZone === "prev"){
     for (var pn = 1; pn <= PREV_N; pn++){
       var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
@@ -1119,16 +1119,10 @@ function buildRows(start){
       var __b3 = __md[0] + __md[1] + __md[2];
       var __b4 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4];
       var __b8 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4] + __md[5] + __md[6] + __md[7];
-      var __r3 = __md[0] + __md[1] + __md[2];
-      var __r5 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4];
-      var __r8 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4] + __md[5] + __md[6] + __md[7];
       var __cells = [
         [__b3, "本期开出的号码中，遗漏 ≤2 的个数"],
         [__b4, "本期开出的号码中，遗漏 ≤4 的个数"],
-        [__b8, "本期开出的号码中，遗漏 ≤7 的个数"],
-        [__r3, "3 期内重复：遗漏 0~2 期（最近 3 期内出现过）的号码个数"],
-        [__r5, "5 期内重复：遗漏 0~4 期"],
-        [__r8, "8 期内重复：遗漏 0~7 期"]
+        [__b8, "本期开出的号码中，遗漏 ≤7 的个数"]
       ];
       __cells.forEach(function(it){
         var v = it[0];
