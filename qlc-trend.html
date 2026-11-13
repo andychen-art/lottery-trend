@@ -518,7 +518,7 @@ var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8"
 var numZone = {};
 ZONES.forEach(function(z){ z.nums.forEach(function(n){ numZone[n] = z.id; }); });
 // 回补 / 重复统计用的列名（顺序与表头一致）
-var HB_NAMES = ["尾12589", "区间回补", "3期回补", "4期回补", "8期回补"];
+var HB_NAMES = ["尾12589", "区间回补"];
 var HB_TAILS = [1, 2, 5, 8, 9];
 var PREV_N = 10;  // 走势图：显示前第 N 期的开奖号码（前1期 ~ 前10期）
 var PREV_WINDOWS = [[1, 3], [4, 6], [7, 10]];  // 分组汇总的期数区间（含首含尾）
@@ -958,7 +958,7 @@ function buildHead(){
   h += '<th class="issue" rowspan="2">期号</th><th class="issue" rowspan="2">开奖号码</th>';
   var sepAll = (trendZone === "all");
   if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="6">区间出号个数</th>';
-  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="5" title="区间回补与遗漏回补统计">回补统计</th>';
+  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="2" title="尾数与区间回补">尾数/区间回补</th>';
   if (trendZone === "all" || trendZone === "prev"){
     for (var pn = 1; pn <= PREV_N; pn++){
       var psep = sepAll ? (pn === 1 ? ' sep' : ' sep-blue') : ' sep-blue';
@@ -981,6 +981,7 @@ function buildHead(){
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
   if (trendZone === "all" || trendZone === "miss") h += '<th class="missh' + (sepAll ? ' sep' : '') + '" colspan="10">出号遗漏分布</th>';
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="missh sep-blue" colspan="3" title="按遗漏分布统计的回补个数">回补个数</th>';
   if (trendZone === "all" || trendZone === "sum2") h += '<th class="sum2' + (sepAll ? ' sep' : '') + '" colspan="8">两期遗漏和</th>';
   if (trendZone === "all" || trendZone === "sum3") h += '<th class="sum3' + (sepAll ? ' sep' : '') + '" colspan="7">三期遗漏和</th>';
   if (trendZone === "all" || trendZone === "cum") h += '<th class="cum' + (sepAll ? ' sep' : '') + '" colspan="3">累计遗漏和</th>';
@@ -1021,6 +1022,7 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "miss"){
     MISS_NAMES.forEach(function(m){ h += '<th class="sub">' + m + '</th>'; });
   }
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="sub" title="本期开出号码中遗漏≤2的个数">3期回补</th><th class="sub" title="本期开出号码中遗漏≤4的个数">4期回补</th><th class="sub" title="本期开出号码中遗漏≤7的个数">8期回补</th>';
   if (trendZone === "all" || trendZone === "sum2"){
     for (var k2 = 0; k2 < 8; k2++) h += '<th class="sub">漏' + k2 + '-' + (k2 + 1) + '</th>';
   }
@@ -1105,13 +1107,7 @@ function buildRows(start){
       // 以下按「遗漏分布」统计：md[0]=重0(漏0) md[1]=漏1 … md[8]=漏8 md[9]=9+
       var __md = missCache[i];
       // 回补 = 本期开出的号码中，遗漏值 ≤ 2 / ≤ 4 / ≤ 7 的个数
-      var __b3 = __md[0] + __md[1] + __md[2];
-      var __b4 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4];
-      var __b8 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4] + __md[5] + __md[6] + __md[7];
       var __cells = [
-        [__b3, "本期开出的号码中，遗漏 ≤2 的个数"],
-        [__b4, "本期开出的号码中，遗漏 ≤4 的个数"],
-        [__b8, "本期开出的号码中，遗漏 ≤7 的个数"]
       ];
       __cells.forEach(function(it){
         var v = it[0];
@@ -1170,6 +1166,15 @@ function buildRows(start){
         r += '<td class="zc' + (n > 0 ? ' hi' : '') + '" title="' + MISS_NAMES[k] + '：' + n + '个">' + n + '</td>';
       });
     }
+        if (all || trendZone === "miss"){
+          var __hb = missCache[i];
+          var __hb3 = __hb[0] + __hb[1] + __hb[2];
+          var __hb4 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4];
+          var __hb8 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4] + __hb[5] + __hb[6] + __hb[7];
+          r += '<td class="zc' + (__hb3 > 0 ? ' hi' : '') + '" title="遗漏≤2 的个数">' + __hb3 + '</td>';
+          r += '<td class="zc' + (__hb4 > 0 ? ' hi' : '') + '" title="遗漏≤4 的个数">' + __hb4 + '</td>';
+          r += '<td class="zc' + (__hb8 > 0 ? ' hi' : '') + '" title="遗漏≤7 的个数">' + __hb8 + '</td>';
+        }
     if (all || trendZone === "sum2"){
       for (var s2 = 0; s2 < 8; s2++){
         var v2 = md[s2] + md[s2 + 1];
