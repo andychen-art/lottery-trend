@@ -205,6 +205,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
   <span class="tab" data-tab="md" onclick="setTab('md',this)">🧮 余数统计</span>
   <span class="tab" data-tab="wd" onclick="setTab('wd',this)">🎯 尾数统计</span>
   <span class="tab" data-tab="nm" onclick="setTab('nm',this)">🔢 号码统计</span>
+    <span class="tab" data-tab="wy" onclick="setTab('wy',this)">🎯 外围五行</span>
     <span class="tab" data-tab="ab" onclick="setTab('ab',this)">⭕ A/B圈统计</span>
   <span class="tab" data-tab="lj" onclick="setTab('lj',this)">📐 邻号间距</span>
   <span class="tab" data-tab="today" onclick="setTab('today',this)">📅 历史上的今天</span>
@@ -355,6 +356,18 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
       <div class="czhint" style="margin-top:8px">当前页组合汇总统计：</div>
       <div id="nmStat1"></div>
     </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-wy">
+  <div class="czbox">
+    <h2>🎯 外围出号个数（外围1~5）<span style="font-size:12px;color:#888;font-weight:normal">每期开奖号码落在各外围号码中的个数</span></h2>
+    <div id="wySetup"></div>
+    <div class="scrollwrap"><table class="zs" id="wyTrendTb1"></table></div>
+  </div>
+  <div class="czbox">
+    <h2>🔥 五行出号个数（金木水火）与任意两两组合</h2>
+    <div class="scrollwrap"><table class="zs" id="wyTrendTb2"></table></div>
   </div>
 </div>
 
@@ -861,6 +874,7 @@ function setTab(t, el){
   if (t === "nm") nmRender();
   if (t === "lj") ljRender();
   if (t === "ab") abRender();
+  if (t === "wy") wyRender();
   if (t === "today") enterTodayView();
 }
 var statRendered = false;
@@ -932,6 +946,8 @@ function render(){
   if (typeof ljRender === "function") ljRender();
   // A/B圈统计面板：跟随期数/数据变化刷新
   if (typeof abRender === "function") abRender();
+  // 外围/五行面板：跟随期数/数据变化刷新
+  if (typeof wyRender === "function") wyRender();
 }
 
 function buildHead(){
@@ -2738,6 +2754,86 @@ abLoad();
 abApplyStatsUI();
 
 
+// ===== 🎯 外围 / 五行统计（每期开奖号码落在各外围、各五行及其两两组合中的出号个数）=====
+var WY_RINGS = [
+  { name: "外围1", nums: [1,2,3,4,5,6,7,12,13,18,19,24,25,26,27,28,29,30] },
+  { name: "外围2", nums: [1,2,3,7,8,9,13,14,15] },
+  { name: "外围3", nums: [4,5,6,10,11,12,16,17,18] },
+  { name: "外围4", nums: [13,14,15,19,20,21,25,26,27] },
+  { name: "外围5", nums: [16,17,18,22,23,24,28,29,30] }
+];
+var WX_ELEMS = [
+  { name: "金", nums: [9,10,21,22] },
+  { name: "木", nums: [3,4,15,16,27,28] },
+  { name: "水", nums: [1,12,13,24,25] },
+  { name: "火", nums: [6,7,18,19,30] }
+];
+var WX_PAIRS = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+function wyPad(n){ return ("0" + n).slice(-2); }
+function wyNumsText(ns){ return ns.map(wyPad).join(" "); }
+function wyCount(red, ns){ var c = 0; for (var i = 0; i < red.length; i++){ if (ns.indexOf(red[i]) !== -1) c++; } return c; }
+function wyRenderSetup(){
+  var box = document.getElementById("wySetup");
+  if (!box) return;
+  var h = "<div class=\"czrow\"><span class=\"czlbl\">外围:</span><span class=\"czzlist\">";
+  WY_RINGS.forEach(function(r){ h += "<span class=\"zn\" title=\"" + wyNumsText(r.nums) + "\">" + r.name + " · " + r.nums.length + "个</span>"; });
+  h += "</span></div>";
+  h += "<div class=\"czhint\">周边 01~30 全部被外围覆盖；「命中外围数」= 当期命中了几个外围（0~5，外围里至少有 1 个开奖号码即算命中）。五行：";
+  WX_ELEMS.forEach(function(e){ h += "<b>" + e.name + "</b>(" + wyNumsText(e.nums) + ")　"; });
+  h += "；两两组合统计两组号码并集的出号个数。未归属五行的 10 个号：" + wyNumsText([2,5,8,11,14,17,20,23,26,29]) + "。</div>";
+  box.innerHTML = h;
+}
+function wyRender(){
+  wyRenderSetup();
+  var start = sliceStart();
+  var t1 = document.getElementById("wyTrendTb1");
+  if (t1){
+    var h = "<thead><tr><th class=\"issue\">期号</th><th class=\"issue\">开奖号码</th>";
+    WY_RINGS.forEach(function(r){ h += "<th class=\"ljh\" title=\"" + r.name + "：" + wyNumsText(r.nums) + "\">" + r.name + "</th>"; });
+    h += "<th class=\"ljpairh\" title=\"当期命中的外围个数（0~5）：某外围里有至少 1 个开奖号码就算命中\">命中外围数</th></tr></thead><tbody>";
+    for (var i = start; i < HIST.length; i++){
+      var red = HIST[i].red;
+      h += "<tr" + ((i - start) % 2 ? " class=\"bg2\"" : "") + "><td class=\"issue\">" + HIST[i].issue + "</td><td class=\"num\">" + red.map(wyPad).join(" ") + "</td>";
+      var inAny = 0;
+      WY_RINGS.forEach(function(r){
+        var c = wyCount(red, r.nums);
+        if (c > 0) inAny++;
+        h += "<td class=\"zc" + (c > 0 ? " hi" : "") + "\" title=\"" + r.name + " 出号 " + c + " 个\">" + c + "</td>";
+      });
+      h += "<td class=\"zc\" title=\"命中 " + inAny + " 个外围\">" + inAny + "</td>";
+      h += "</tr>";
+    }
+    t1.innerHTML = h + "</tbody>";
+  }
+  var t2 = document.getElementById("wyTrendTb2");
+  if (t2){
+    var h2 = "<thead><tr><th class=\"issue\">期号</th><th class=\"issue\">开奖号码</th>";
+    WX_ELEMS.forEach(function(e){ h2 += "<th class=\"ljh\" title=\"" + e.name + "：" + wyNumsText(e.nums) + "\">" + e.name + "</th>"; });
+    WX_PAIRS.forEach(function(p){
+      var lb = WX_ELEMS[p[0]].name + "+" + WX_ELEMS[p[1]].name;
+      var ns = WX_ELEMS[p[0]].nums.concat(WX_ELEMS[p[1]].nums);
+      h2 += "<th class=\"ljpairh\" title=\"" + lb + "：" + wyNumsText(ns) + "\">" + lb + "</th>";
+    });
+    h2 += "</tr></thead><tbody>";
+    for (var i2 = start; i2 < HIST.length; i2++){
+      var red2 = HIST[i2].red;
+      h2 += "<tr" + ((i2 - start) % 2 ? " class=\"bg2\"" : "") + "><td class=\"issue\">" + HIST[i2].issue + "</td><td class=\"num\">" + red2.map(wyPad).join(" ") + "</td>";
+      WX_ELEMS.forEach(function(e){
+        var c2 = wyCount(red2, e.nums);
+        h2 += "<td class=\"zc" + (c2 > 0 ? " hi" : "") + "\" title=\"" + e.name + " 出号 " + c2 + " 个\">" + c2 + "</td>";
+      });
+      WX_PAIRS.forEach(function(p){
+        var ns2 = WX_ELEMS[p[0]].nums.concat(WX_ELEMS[p[1]].nums);
+        var c3 = wyCount(red2, ns2);
+        var lb2 = WX_ELEMS[p[0]].name + "+" + WX_ELEMS[p[1]].name;
+        h2 += "<td class=\"zc" + (c3 > 0 ? " hi" : "") + "\" title=\"" + lb2 + " 出号 " + c3 + " 个\">" + c3 + "</td>";
+      });
+      h2 += "</tr>";
+    }
+    t2.innerHTML = h2 + "</tbody>";
+  }
+}
+
 // ===== 更新数据 =====
 function updateData(){
   var st = document.getElementById("status");
@@ -2946,6 +3042,15 @@ function exportExcel(){
       abBody += xlsTable(t) + "<Row><Cell><Data ss:Type=\"String\"> </Data></Cell></Row>";
     });
     if (abBody) sheets.push({ name: "A/B圈统计", body: abBody });
+  }
+  var wyPanelX = document.getElementById("panel-wy");
+  if (wyPanelX && wyPanelX.className.indexOf("on") >= 0){
+    var wyBody = "";
+    Array.prototype.forEach.call(wyPanelX.querySelectorAll("table"), function(t){
+      if (t.offsetParent === null || !t.rows.length) return;
+      wyBody += xlsTable(t) + "<Row><Cell><Data ss:Type=\"String\"> </Data></Cell></Row>";
+    });
+    if (wyBody) sheets.push({ name: "外围五行", body: wyBody });
   }
   downloadXls(buildWorkbook(sheets), (isTodayView ? "七乐彩_历史上的今天_" : "七乐彩_区间走势_") + rangeName + "_" + todayStr() + ".xls");
 }
