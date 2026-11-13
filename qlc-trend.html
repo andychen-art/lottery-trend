@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="description" content="七乐彩走势图：7区间出号个数、上期空区、出号遗漏分布、两期和/三期和/累计和、重邻阳码、尾数分布与遗漏、余数统计、定位余数、行列江恩、号码遗漏，邻号间距与遗漏和统计，含「历史上的今天」历年同期对比。">
+<meta name="description" content="七乐彩走势图：6区间出号个数、上期空区、出号遗漏分布、两期和/三期和/累计和、重邻阳码、尾数分布与遗漏、余数统计、定位余数、行列江恩、号码遗漏，邻号间距与遗漏和统计，含「历史上的今天」历年同期对比。">
 <meta name="keywords" content="七乐彩走势图,七乐彩开奖,七乐彩遗漏,七乐彩统计,邻号间距">
 <meta property="og:title" content="七乐彩走势图 - 区间出号遗漏分布与统计（全历史，每日更新）">
-<meta property="og:description" content="七乐彩走势图：7区间出号个数、上期空区、出号遗漏分布、两期和/三期和/累计和、重邻阳码、尾数分布与遗漏、余数统计、定位余数、行列江恩、号码遗漏，邻号间距与遗漏和统计，含「历史上的今天」历年同期对比。">
+<meta property="og:description" content="七乐彩走势图：6区间出号个数、上期空区、出号遗漏分布、两期和/三期和/累计和、重邻阳码、尾数分布与遗漏、余数统计、定位余数、行列江恩、号码遗漏，邻号间距与遗漏和统计，含「历史上的今天」历年同期对比。">
 <meta name="robots" content="index,follow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>七乐彩走势图 - 区间出号遗漏分布与统计（全历史，每日更新）</title>
@@ -176,7 +176,7 @@ document.querySelectorAll('a.card').forEach(function(a){var h=a.getAttribute('hr
 }catch(e){}})();</script>
 
 <h1>🎯 七乐彩 · 区间出号与遗漏分布走势图</h1>
-<div class="sub hidden" id="sub">30 选 7，7 区间（01-04 / 05-08 / 09-12 / 13-16 / 17-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期出号个数（单数标●）；每段末尾是该段 0-2/1-3 汇总，最后两列是总汇总· 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
+<div class="sub hidden" id="sub">30 选 7，6 区间（01-05 / 06-10 / 11-15 / 16-20 / 21-25 / 26-30）当期出号个数 · 前1~前10期出号个数（单数标●）；每段末尾是该段 0-2/1-3 汇总，最后两列是总汇总· 出号遗漏分布（重0/漏1~漏8/9+）· 数据 500 期（2023048 ~ 2026096）</div>
 
 <div class="bar">
   <span class="lbl">期数:</span>
@@ -511,7 +511,7 @@ var HIST_ALL = (function(){
   out.sort(function(a, b){ return a.issue < b.issue ? -1 : (a.issue > b.issue ? 1 : 0); });
   return out;
 })();
-var ZONES = [{"id":"z1","name":"01-04","nums":[1,2,3,4]},{"id":"z2","name":"05-08","nums":[5,6,7,8]},{"id":"z3","name":"09-12","nums":[9,10,11,12]},{"id":"z4","name":"13-16","nums":[13,14,15,16]},{"id":"z5","name":"17-20","nums":[17,18,19,20]},{"id":"z6","name":"21-25","nums":[21,22,23,24,25]},{"id":"z7","name":"26-30","nums":[26,27,28,29,30]}];
+var ZONES = [{"id":"z1","name":"01-05","nums":[1,2,3,4,5]},{"id":"z2","name":"06-10","nums":[6,7,8,9,10]},{"id":"z3","name":"11-15","nums":[11,12,13,14,15]},{"id":"z4","name":"16-20","nums":[16,17,18,19,20]},{"id":"z5","name":"21-25","nums":[21,22,23,24,25]},{"id":"z6","name":"26-30","nums":[26,27,28,29,30]}];
 var MISS_NAMES = ["重0","漏1","漏2","漏3","漏4","漏5","漏6","漏7","漏8","9+"];
 
 // 号码 → 区间
@@ -957,7 +957,7 @@ function buildHead(){
   var h = "<thead><tr>";
   h += '<th class="issue" rowspan="2">期号</th><th class="issue" rowspan="2">开奖号码</th>';
   var sepAll = (trendZone === "all");
-  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="7">区间出号个数</th>';
+  if (trendZone === "all" || trendZone === "zone") h += '<th class="zone' + (sepAll ? '' : ' sep') + '" colspan="6">区间出号个数</th>';
   if (trendZone === "all" || trendZone === "zone") h += '<th class="zone sep-blue" colspan="8" title="区间回补与区间重复统计">回补 / 重复统计</th>';
   if (trendZone === "all" || trendZone === "prev"){
     for (var pn = 1; pn <= PREV_N; pn++){
@@ -1311,9 +1311,9 @@ function drawStat(start, idPrefix){
   var stats = ['', '', '', '', '', '', '', '', ''];
   // ---- 区间分布：每区间出0/1/2/3/4个的期数 ----
   var zd = {};
-  ZONES.forEach(function(z){ zd[z.id] = [0,0,0,0,0]; });
+  ZONES.forEach(function(z){ zd[z.id] = [0,0,0,0,0,0]; });
   var mt = [0,0,0,0,0,0,0,0,0,0];
-  var ed = [0,0,0,0,0,0];  // 上期空区出号分布 0~5
+  var ed = [0,0,0,0,0,0,0,0];  // 上期空区出号分布 0~7
   var clySums = [[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0]];
   var s2d = [];
   for (var k2 = 0; k2 < 8; k2++) s2d.push([0,0,0,0,0,0]);
@@ -1347,16 +1347,16 @@ function drawStat(start, idPrefix){
   ZONES.forEach(function(z){
     var d = zd[z.id];
     var total = d.reduce(function(a, b){ return a + b; }, 0);
-    var sum = d[1] + d[2] * 2 + d[3] * 3 + d[4] * 4;
+    var sum = d[1] + d[2] * 2 + d[3] * 3 + d[4] * 4 + d[5] * 5;
     stats[0] += '<tr><td class="graytd">' + z.name + '区</td>';
-    for (var k = 0; k <= 4; k++) stats[0] += '<td>' + d[k] + '</td>';
-    stats[0] += '<td>-</td><td>' + (sum / total).toFixed(2) + '</td><td>' + (sum / (n * 7) * 100).toFixed(1) + '%</td></tr>';
+    for (var k = 0; k <= 5; k++) stats[0] += '<td>' + d[k] + '</td>';
+    stats[0] += '<td>' + (sum / total).toFixed(2) + '</td><td>' + (sum / (n * 7) * 100).toFixed(1) + '%</td></tr>';
   });
   stats[0] += '</table>';
   // [1] 上期空区出号分布
   var en = ed.reduce(function(a, b){ return a + b; }, 0);
   stats[1] = '<table class="st">';
-  stats[1] += '<tr><th class="graytd" colspan="7">上期空区出号分布（' + en + '期）</th></tr>';
+  stats[1] += '<tr><th class="graytd" colspan="8">上期空区出号分布（' + en + '期）</th></tr>';
   stats[1] += '<tr>';
   ed.forEach(function(v, k){ stats[1] += '<td class="graytd">出' + k + '个</td>'; });
   stats[1] += '</tr><tr>';
@@ -1632,7 +1632,7 @@ function czApplyText(){
     gi++;
     nums.forEach(function(n){ asg[n] = gi; });
   });
-  if (gi < 1){ czMsg("❌ 没解析出有效区间。示例：1-4 | 5-8 | 9-12 | 13-16 | 17-20 | 21-25 | 26-30", 1); return; }
+  if (gi < 1){ czMsg("❌ 没解析出有效区间。示例：1-5 | 6-10 | 11-15 | 16-20 | 21-25 | 26-30", 1); return; }
   czAssign = asg; czK = gi; czMode = 1; czSave(); czRender();
   var miss = [];
   for (var n2 = 1; n2 <= CZ_TOTAL; n2++){ if (!asg[n2]) miss.push(czPad(n2)); }
