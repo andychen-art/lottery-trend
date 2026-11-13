@@ -996,7 +996,7 @@ function buildHead(){
   }
   if (trendZone === "all" || trendZone === "empty") h += '<th class="empty' + (sepAll ? ' sep' : '') + '" colspan="1">上期空区出号</th>';
   if (trendZone === "all" || trendZone === "miss") h += '<th class="missh' + (sepAll ? ' sep' : '') + '" colspan="10">出号遗漏分布</th>';
-  if (trendZone === "all" || trendZone === "miss") h += '<th class="missh sep-blue" colspan="3" title="按遗漏分布统计的回补个数">回补个数</th>';
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="missh sep-blue" colspan="3" title="按遗漏分布统计的重复个数">重复个数</th>';
   if (trendZone === "all" || trendZone === "sum2") h += '<th class="sum2' + (sepAll ? ' sep' : '') + '" colspan="8">两期遗漏和</th>';
   if (trendZone === "all" || trendZone === "sum3") h += '<th class="sum3' + (sepAll ? ' sep' : '') + '" colspan="7">三期遗漏和</th>';
   if (trendZone === "all" || trendZone === "cum") h += '<th class="cum' + (sepAll ? ' sep' : '') + '" colspan="3">累计遗漏和</th>';
@@ -1037,7 +1037,7 @@ function buildHead(){
   if (trendZone === "all" || trendZone === "miss"){
     MISS_NAMES.forEach(function(m){ h += '<th class="sub">' + m + '</th>'; });
   }
-  if (trendZone === "all" || trendZone === "miss") h += '<th class="sub" title="本期开出号码中遗漏≤2的个数">3期回补</th><th class="sub" title="本期开出号码中遗漏≤4的个数">4期回补</th><th class="sub" title="本期开出号码中遗漏≤7的个数">8期回补</th>';
+  if (trendZone === "all" || trendZone === "miss") h += '<th class="sub" title="本期开出号码中遗漏≤2的个数（漏0~漏2）">3期内重复</th><th class="sub" title="本期开出号码中遗漏≤4的个数（漏0~漏4）">5期内重复</th><th class="sub" title="本期开出号码中遗漏≤7的个数（漏0~漏7）">8期内重复</th>';
   if (trendZone === "all" || trendZone === "sum2"){
     for (var k2 = 0; k2 < 8; k2++) h += '<th class="sub">漏' + k2 + '-' + (k2 + 1) + '</th>';
   }
@@ -1183,9 +1183,9 @@ function buildRows(start){
           var __hb3 = __hb[0] + __hb[1] + __hb[2];
           var __hb4 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4];
           var __hb8 = __hb[0] + __hb[1] + __hb[2] + __hb[3] + __hb[4] + __hb[5] + __hb[6] + __hb[7];
-          r += '<td class="zc' + (__hb3 > 0 ? ' hi' : '') + '" title="遗漏≤2 的个数">' + __hb3 + '</td>';
-          r += '<td class="zc' + (__hb4 > 0 ? ' hi' : '') + '" title="遗漏≤4 的个数">' + __hb4 + '</td>';
-          r += '<td class="zc' + (__hb8 > 0 ? ' hi' : '') + '" title="遗漏≤7 的个数">' + __hb8 + '</td>';
+          r += '<td class="zc' + (__hb3 > 0 ? ' hi' : '') + '" title="漏0~漏2 的个数">' + __hb3 + '</td>';
+          r += '<td class="zc' + (__hb4 > 0 ? ' hi' : '') + '" title="漏0~漏4 的个数">' + __hb4 + '</td>';
+          r += '<td class="zc' + (__hb8 > 0 ? ' hi' : '') + '" title="漏0~漏7 的个数">' + __hb8 + '</td>';
         }
     if (all || trendZone === "sum2"){
       for (var s2 = 0; s2 < 8; s2++){
