@@ -1107,40 +1107,29 @@ function buildRows(start){
       // 尾数 1 2 5 8 9 出号个数
       var __t12589 = d.red.filter(function(x){ return HB_TAILS.indexOf(x % 10) !== -1; }).length;
       r += '<td class="zc' + (__t12589 > 0 ? ' hi' : '') + '" title="尾数 1/2/5/8/9 出号 ' + __t12589 + ' 个">' + __t12589 + '</td>';
-      // 区间回补 / 重复
-      var __zb = function(zid, k){ return (i - k >= 0) ? zoneCache[i - k][zid] : null; };
-      var __back = 0, __back3 = 0, __back5 = 0, __back8 = 0, __rep3 = 0, __rep5 = 0, __rep8 = 0;
-      var __ok3 = (i - 3 >= 0), __ok5 = (i - 5 >= 0), __ok8 = (i - 8 >= 0), __ok1 = (i - 1 >= 0);
-      ZONES.forEach(function(z){
-        var zid = z.id, cur = zc[zid];
-        var e1 = true, e3 = true, e5 = true, e8 = true;
-        var h3 = true, h5 = true, h8 = true;
-        for (var k = 1; k <= 8; k++){
-          var v = __zb(zid, k);
-          if (v === null) { if (k <= 3) { e3 = false; h3 = false; } if (k <= 5) { e5 = false; h5 = false; } e8 = false; h8 = false; continue; }
-          if (k === 1){ if (v !== 0) e1 = false; }
-          if (v !== 0){ e3 = false; e5 = false; e8 = false; } else { h3 = false; h5 = false; h8 = false; }
-        }
-        if (e1 && cur > 0) __back += cur;
-        if (e3 && __ok3) __back3 += cur;
-        if (e5 && __ok5) __back5 += cur;
-        if (e8 && __ok8) __back8 += cur;
-        if (h3 && __ok3) __rep3 += cur;
-        if (h5 && __ok5) __rep5 += cur;
-        if (h8 && __ok8) __rep8 += cur;
-      });
+      // 区间回补：落在上期空区里的号码个数（区间口径）
+      var __back = 0;
+      if (i > 0){ ZONES.forEach(function(z){ if (zoneCache[i - 1][z.id] === 0) __back += zc[z.id]; }); }
+      r += '<td class="zc' + (__back > 0 ? ' hi' : '') + '" title="上期空区中出号 ' + __back + ' 个">' + __back + '</td>';
+      // 以下按「遗漏分布」统计：md[0]=重0(漏0) md[1]=漏1 … md[8]=漏8 md[9]=9+
+      var __md = missCache[i];
+      var __b3 = __md[1] + __md[2] + __md[3];
+      var __b5 = __md[1] + __md[2] + __md[3] + __md[4] + __md[5];
+      var __b8 = __md[8] + __md[9];
+      var __r3 = __md[0] + __md[1] + __md[2];
+      var __r5 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4];
+      var __r8 = __md[0] + __md[1] + __md[2] + __md[3] + __md[4] + __md[5] + __md[6] + __md[7];
       var __cells = [
-        [__back, __ok1, "上期空区中出号个数"],
-        [__back3, __ok3, "前 3 期都没出号的区间，本期出号个数"],
-        [__back5, __ok5, "前 5 期都没出号的区间，本期出号个数"],
-        [__back8, __ok8, "连续 8 期及以上没出号的区间（含第 8 期），本期出号个数"],
-        [__rep3, __ok3, "前 3 期都出过号的区间，本期出号个数"],
-        [__rep5, __ok5, "前 5 期都出过号的区间，本期出号个数"],
-        [__rep8, __ok8, "前 8 期都出过号的区间，本期出号个数"]
+        [__b3, "前 3 期回补：遗漏 1~3 期的号码个数"],
+        [__b5, "前 5 期回补：遗漏 1~5 期的号码个数"],
+        [__b8, "8 期外下号：遗漏 8 期及以上（含第 8 期）的号码个数"],
+        [__r3, "3 期内重复：遗漏 0~2 期（最近 3 期内出现过）的号码个数"],
+        [__r5, "5 期内重复：遗漏 0~4 期"],
+        [__r8, "8 期内重复：遗漏 0~7 期"]
       ];
       __cells.forEach(function(it){
-        var v = it[0], ok = it[1], tip = it[2];
-        r += ok ? ('<td class="zc' + (v > 0 ? ' hi' : '') + '" title="' + tip + ' = ' + v + '">' + v + '</td>') : '<td class="zc" title="历史期数不足">-</td>';
+        var v = it[0];
+        r += '<td class="zc' + (v > 0 ? ' hi' : '') + '" title="' + it[1] + ' = ' + v + '">' + v + '</td>';
       });
     }
     if (all || trendZone === "prev"){
